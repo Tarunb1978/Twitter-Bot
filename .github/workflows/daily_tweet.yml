@@ -22,21 +22,17 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install -r "./requirements.txt"
+        run: pip install -r ./requirements.txt
 
       - name: Create logs directory
-        working-directory: "Twitter Bot"
         run: mkdir -p logs
 
       - name: Run tweet agent
-        working-directory: "./"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MARKETAUX_API_KEY: ${{ secrets.MARKETAUX_API_KEY }}
           NEWSDATA_API_KEY: ${{ secrets.NEWSDATA_API_KEY }}
-
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: python main.py
-
