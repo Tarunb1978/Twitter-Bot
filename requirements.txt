@@ -1,0 +1,5 @@
+langgraph
+langchain-openai
+yfinance
+requests
+python-dotenv

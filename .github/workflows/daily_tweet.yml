@@ -1,0 +1,42 @@
+name: Daily India Tweet Agent
+
+on:
+  schedule:
+    # 4:00 PM IST = 10:30 UTC. Weekdays only.
+    - cron: '30 10 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: daily-india-tweet-agent
+  cancel-in-progress: false
+
+jobs:
+  tweet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r "Twitter  Bot/requirements.txt"
+
+      - name: Create logs directory
+        working-directory: "Twitter  Bot"
+        run: mkdir -p logs
+
+      - name: Run tweet agent
+        working-directory: "Twitter  Bot"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MARKETAUX_API_KEY: ${{ secrets.MARKETAUX_API_KEY }}
+          NEWSDATA_API_KEY: ${{ secrets.NEWSDATA_API_KEY }}
+
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python main.py
+
