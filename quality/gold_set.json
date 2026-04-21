@@ -1,0 +1,14 @@
+[
+  {
+    "id": "dispatch_001",
+    "regime": "riskOffUnwind",
+    "headline": "SYSTEMATIC DE-RISKING DRIVES DIVERGENT UNWIND IN INDIAN EQUITIES",
+    "text": "HEADLINE: SYSTEMATIC DE-RISKING DRIVES DIVERGENT UNWIND IN INDIAN EQUITIES\n\nMarket data indicates institutional de-risking accelerated as bank beta underperformed defensive exporters under elevated volatility pricing.\n\nThis price action underscores positioning unwind mechanics, where liquidity demand and balance-sheet sensitivity outrank top-down narratives.\n\nParallel to this move, cross-asset dispersion widened across Asia and commodities, signaling portfolio-level risk budget compression.\n\nThe divergence suggests current stress is regime-linked rather than stock-specific. Trigger: elevated volatility with weak breadth. Confirmation: continued sector dispersion under risk-off conditions. Invalidation: volatility mean-reversion with broad risk recovery."
+  },
+  {
+    "id": "dispatch_002",
+    "regime": "commodityShock",
+    "headline": "COMMODITY SHOCK REPRICES MARGINS AND GLOBAL RISK PREMIA",
+    "text": "HEADLINE: COMMODITY SHOCK REPRICES MARGINS AND GLOBAL RISK PREMIA\n\nMarket data indicates the commodity move transmitted rapidly into sector-relative performance and margin expectations.\n\nThis price action underscores supply-shock mechanics as import-cost channels and earnings sensitivity diverge across sectors.\n\nParallel to this move, regional indices reflected asymmetric stress while cross-asset signals repriced inflation-risk and growth-risk together.\n\nThe divergence suggests a macro transmission regime, not isolated sector noise. Trigger: sustained commodity dislocation. Confirmation: persistent margin-sensitive underperformance. Invalidation: commodity normalization with spread compression."
+  }
+]

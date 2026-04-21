@@ -1,7 +1,7 @@
 langchain
 langchain-openai
+langchain-ollama
 langgraph
-langchain-openai
 yfinance
 requests
 python-dotenv

@@ -28,7 +28,9 @@ from config import (
 def _fetch_daily_change(ticker: str) -> dict | None:
     """Fetch today's closing price and % change for a single ticker."""
     try:
-        hist = yf.Ticker(ticker).history(period="2d")
+        # Use a slightly wider window to avoid "only 1 row" edge-cases
+        # for some futures symbols (e.g., Brent) around market hours.
+        hist = yf.Ticker(ticker).history(period="5d")
         if len(hist) < 2:
             return None
         prev_close = hist["Close"].iloc[-2]

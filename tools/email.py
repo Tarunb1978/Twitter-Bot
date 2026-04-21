@@ -8,6 +8,7 @@ The email contains:
 """
 
 import smtplib
+import time
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -19,6 +20,8 @@ from config import (
     EMAIL_PASSWORD,
     EMAIL_SMTP_PORT,
     EMAIL_SMTP_SERVER,
+    EMAIL_SMTP_TIMEOUT_SEC,
+    EMAIL_SEND_RETRIES,
     EMAIL_TO,
 )
 
@@ -26,7 +29,9 @@ from config import (
 def _build_email_body(
     scored_tweets: list[dict],
     market_data: dict | None = None,
+    macro_data: dict | None = None,
     news_articles: list[dict] | None = None,
+    dispatch_qa: dict | None = None,
 ) -> str:
     """
     Build a clean HTML email body with scored tweets and sources.
@@ -105,6 +110,14 @@ def _build_email_body(
 
         lines.append("</pre>")
 
+    if macro_data:
+        lines.append("<hr>")
+        lines.append("<h3>Macro Data Used</h3>")
+        lines.append("<pre style='font-size:13px;'>")
+        # JSON renders the exact tool outputs (including notes/nulls) for auditability.
+        lines.append(str(macro_data))
+        lines.append("</pre>")
+
     if news_articles:
         lines.append("<hr>")
         lines.append("<h3>News Sources (for fact-checking)</h3>")
@@ -122,6 +135,36 @@ def _build_email_body(
             )
         lines.append("</ul>")
 
+    if dispatch_qa:
+        lines.append("<hr>")
+        lines.append("<h3>Dispatch QA</h3>")
+        passed = dispatch_qa.get("dispatch_validation_passed")
+        failed_rules = dispatch_qa.get("failed_rules", [])
+        hard_fail_reasons = dispatch_qa.get("hard_fail_reasons", [])
+        qa_v2_scores = dispatch_qa.get("qa_v2_scores", {})
+        weighted_total = dispatch_qa.get("weighted_total")
+        rewrite_attempted = dispatch_qa.get("rewrite_attempted", False)
+        rewrite_passed = dispatch_qa.get("rewrite_passed", False)
+        rewrite_reason_codes = dispatch_qa.get("rewrite_reason_codes", [])
+        coverage = dispatch_qa.get("coverage_telemetry", {})
+        lines.append("<pre style='font-size:13px;'>")
+        lines.append(f"dispatch_validation_passed: {passed}")
+        lines.append(f"failed_rules: {failed_rules}")
+        lines.append(f"hard_fail_reasons: {hard_fail_reasons}")
+        lines.append(f"qa_v2_scores: {qa_v2_scores}")
+        lines.append(f"weighted_total: {weighted_total}")
+        lines.append(f"rewrite_attempted: {rewrite_attempted}")
+        lines.append(f"rewrite_passed: {rewrite_passed}")
+        lines.append(f"rewrite_reason_codes: {rewrite_reason_codes}")
+        if coverage:
+            lines.append(f"selected_theme_mix: {coverage.get('selected_theme_mix', {})}")
+            lines.append(f"selected_count: {coverage.get('selected_count', 0)}")
+            lines.append(f"rejected_summary: {coverage.get('rejected_summary', {})}")
+            lines.append(f"novelty_penalties: {coverage.get('novelty_penalties', [])}")
+            lines.append(f"tie_break_applied: {coverage.get('tie_break_applied', False)}")
+            lines.append(f"tie_break_deltas: {coverage.get('tie_break_deltas', [])}")
+        lines.append("</pre>")
+
     return "\n".join(lines)
 
 
@@ -129,7 +172,9 @@ def _build_email_body(
 def send_email(
     scored_tweets: list[dict],
     market_data: dict | None = None,
+    macro_data: dict | None = None,
     news_articles: list[dict] | None = None,
+    dispatch_qa: dict | None = None,
 ) -> str:
     """Send scored tweet drafts via email. Returns 'sent' on success or an error message."""
     if not all([EMAIL_ADDRESS, EMAIL_PASSWORD, EMAIL_TO]):
@@ -142,14 +187,23 @@ def send_email(
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = EMAIL_TO
 
-    body_html = _build_email_body(scored_tweets, market_data, news_articles)
+    body_html = _build_email_body(scored_tweets, market_data, macro_data, news_articles, dispatch_qa)
     msg.attach(MIMEText(body_html, "html"))
 
-    try:
-        with smtplib.SMTP(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_ADDRESS, EMAIL_TO, msg.as_string())
-        return "sent"
-    except Exception as e:
-        return f"Email failed: {e}"
+    # Use per-connection timeout only (avoid socket.setdefaulttimeout global side effects).
+    last_error = ""
+    for attempt in range(1, EMAIL_SEND_RETRIES + 1):
+        try:
+            with smtplib.SMTP(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT, timeout=EMAIL_SMTP_TIMEOUT_SEC) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+                server.sendmail(EMAIL_ADDRESS, EMAIL_TO, msg.as_string())
+            return "sent"
+        except Exception as e:
+            last_error = str(e)
+            if attempt < EMAIL_SEND_RETRIES:
+                time.sleep(1.5 * attempt)
+            continue
+    return f"Email failed after {EMAIL_SEND_RETRIES} attempts: {last_error}"
